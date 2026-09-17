@@ -1,9 +1,10 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { User, LoginDto, RegisterDto } from '@/types/auth'
+import type { User, LoginDto, RegisterDto, AuthResponse } from '@/types/auth'
 import authService from '@/services/auth.service'
 
 export const useAuthStore = defineStore('auth', () => {
+  // >> get init user data
   const getInitialUser = (): User | null => {
     const saved = localStorage.getItem('auth_user')
     try {
@@ -13,22 +14,46 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  const getInitialToken = (): string | null => {
+    const saved = localStorage.getItem('auth_token')
+    if (saved && saved !== 'undefined' && saved !== 'null') {
+      return saved
+    }
+    return null
+  }
+
   const user = ref<User | null>(getInitialUser())
-  const token = ref<string | null>(localStorage.getItem('auth_token'))
-  const loading = ref(false)
+  const token = ref<string | null>(getInitialToken())
+  const loading = ref<boolean>(false)
   const error = ref<string | null>(null)
 
-  const isAuthenticated = computed(() => !!token.value)
+  const isAuthenticated = computed(() => !!token.value && token.value !== 'undefined')
+
+  function setUserFromAuth(res: AuthResponse) {
+    const tokenVal = res?.token
+    if (!tokenVal || tokenVal === 'undefined') {
+      throw new Error('No authentication token returned by the server.')
+    }
+    const userObj: User = {
+      id: res.userId,
+      username: res.username,
+      role: res.role,
+      createdAt: res?.createdAt,
+    }
+
+    token.value = tokenVal
+    user.value = userObj
+    localStorage.setItem('auth_token', tokenVal)
+    localStorage.setItem('auth_user', JSON.stringify(userObj))
+  }
 
   async function login(credentials: LoginDto) {
     loading.value = true
     error.value = null
     try {
       const res = await authService.login(credentials)
-      token.value = res.token
-      user.value = res.user
-      localStorage.setItem('auth_token', res.token)
-      localStorage.setItem('auth_user', JSON.stringify(res.user))
+      setUserFromAuth(res)
+      return res
     } catch (err: any) {
       error.value = err.message || 'Login failed'
       throw err
@@ -42,10 +67,8 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
     try {
       const res = await authService.register(data)
-      token.value = res.token
-      user.value = res.user
-      localStorage.setItem('auth_token', res.token)
-      localStorage.setItem('auth_user', JSON.stringify(res.user))
+      setUserFromAuth(res)
+      return res
     } catch (err: any) {
       error.value = err.message || 'Registration failed'
       throw err
@@ -62,11 +85,16 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   return {
+    // state
     user,
     token,
     loading,
     error,
+
+    // Getter
     isAuthenticated,
+
+    // Actions
     login,
     register,
     logout,
