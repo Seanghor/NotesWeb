@@ -1,64 +1,71 @@
 <script setup lang="ts">
 import { RouterLink, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useToastStore } from '@/stores/toast'
 import { RoutePathEnum } from '@/enum/routes.enum'
+import logOutSvg from '@/assets/logOut.svg'
+import logoSvg from '@/assets/logo.svg'
 
 const authStore = useAuthStore()
+const toastStore = useToastStore()
 const router = useRouter()
 
 function handleLogout() {
   authStore.logout()
+  toastStore.info('Logged out successfully')
   router.push(RoutePathEnum.LOGIN)
 }
 </script>
 
 <template>
-  <header class="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-      <!-- Brand Logo -->
-      <RouterLink
-        :to="RoutePathEnum.HOME"
-        class="flex items-center gap-2 font-black text-xl text-indigo-600 hover:opacity-90"
-      >
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-          />
-        </svg>
-        <span>NotesApp</span>
-      </RouterLink>
+  <nav class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <!-- Logo  -->
+      <div class="flex items-center gap-2.5 group">
+        <div
+          class="w-10 h-10 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-sm group-hover:bg-indigo-700 transition"
+        >
+          <img :src="logoSvg" alt="Logo" class="w-5 h-5" />
+        </div>
+        <span class="font-bold text-lg text-slate-800 tracking-tight">
+          Notes<span class="text-indigo-600 ml-2">Application</span>
+        </span>
+      </div>
 
-      <!-- User Info & Navigation Actions -->
-      <div class="flex items-center gap-3">
+      <!-- Logout Bottom-->
+      <div class="flex items-center gap-3 text-sm">
         <template v-if="authStore.isAuthenticated">
-          <span class="text-sm font-medium text-slate-600 hidden sm:inline">
-            Hello, <strong class="text-slate-900">{{ authStore.user?.username || 'User' }}</strong>
-          </span>
+          <div
+            class="flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-full border border-slate-200"
+          >
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span class="text-xs font-medium text-slate-700">
+              {{ authStore.user?.username || 'User' }}
+            </span>
+          </div>
+
           <button
             @click="handleLogout"
-            class="px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl transition"
+            class="px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition cursor-pointer"
           >
-            Logout
+            <img :src="logOutSvg" alt="Logout" class="w-4 h-4" />
           </button>
         </template>
         <template v-else>
           <RouterLink
             :to="RoutePathEnum.LOGIN"
-            class="px-4 py-2 text-sm font-medium text-slate-700 hover:text-indigo-600 transition"
+            class="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition"
           >
             Sign In
           </RouterLink>
           <RouterLink
             :to="RoutePathEnum.REGISTER"
-            class="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm transition"
+            class="px-3.5 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition cursor-pointer"
           >
-            Sign Up
+            Register
           </RouterLink>
         </template>
       </div>
     </div>
-  </header>
+  </nav>
 </template>

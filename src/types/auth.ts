@@ -7,7 +7,11 @@ export interface User {
 
 export interface AuthResponse {
   token: string
-  user: User
+  userId: number
+  username: string
+  role: string
+  expiresAt: string
+  createdAt?: string
 }
 
 export interface LoginDto {

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { Note, CreateNoteDto, UpdateNoteDto } from '@/types/notes'
 import noteService from '@/services/notes.service'
 
@@ -8,37 +8,37 @@ export const useNotesStore = defineStore('notes', () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  // Filtering & Sorting State
-  const searchQuery = ref('')
+  // Filter & Sort State
+  const searchQuery = ref<string>('')
+  const selectedCategory = ref<string>('All')
   const sortOrder = ref<'desc' | 'asc'>('desc')
 
-  // Computed filtered & sorted notes
-  const filteredNotes = computed(() => {
-    let result = [...notes.value]
+  // data filtered from API backend
+  const filteredNotes = computed(() => notes.value)
+  const totalNotes = computed(() => notes.value.length)
 
-    if (searchQuery.value.trim()) {
-      const q = searchQuery.value.toLowerCase()
-      result = result.filter(
-        (n) =>
-          n.title.toLowerCase().includes(q) || (n.content && n.content.toLowerCase().includes(q)),
-      )
-    }
-
-    result.sort((a, b) => {
-      const dateA = new Date(a.createdAt).getTime()
-      const dateB = new Date(b.createdAt).getTime()
-      return sortOrder.value === 'desc' ? dateB - dateA : dateA - dateB
-    })
-
-    return result
+  // Auto fetch
+  watch([selectedCategory, sortOrder], async () => {
+    await fetchNotes()
   })
 
+  // Debounced search query
+  let searchTimer: ReturnType<typeof setTimeout> | null = null
+  watch(searchQuery, () => {
+    if (searchTimer) clearTimeout(searchTimer)
+    searchTimer = setTimeout(async () => {
+      await fetchNotes()
+    }, 300)
+  })
+
+  // Fetch list notes from API
   async function fetchNotes() {
     loading.value = true
     error.value = null
     try {
       notes.value = await noteService.getNotes({
-        search: searchQuery.value || undefined,
+        search: searchQuery.value.trim() || undefined,
+        category: selectedCategory.value !== 'All' ? selectedCategory.value : undefined,
         sortOrder: sortOrder.value,
       })
     } catch (err: any) {
@@ -48,36 +48,39 @@ export const useNotesStore = defineStore('notes', () => {
     }
   }
 
+  // Create note
   async function createNote(dto: CreateNoteDto) {
     const created = await noteService.createNote(dto)
-    notes.value.unshift(created)
+    await fetchNotes()
     return created
   }
 
+  // Update note
   async function updateNote(id: number, dto: UpdateNoteDto) {
     await noteService.updateNote(id, dto)
-    const index = notes.value.findIndex((n) => n.id === id)
-    if (index !== -1) {
-      notes.value[index] = {
-        ...notes.value[index],
-        ...dto,
-        updatedAt: new Date().toISOString(),
-      } as Note
-    }
+    await fetchNotes()
   }
 
+  // Delete note
   async function deleteNote(id: number) {
     await noteService.deleteNote(id)
-    notes.value = notes.value.filter((n) => n.id !== id)
+    await fetchNotes()
   }
 
   return {
+    // State
     notes,
     loading,
     error,
     searchQuery,
+    selectedCategory,
     sortOrder,
+
+    // Getters
     filteredNotes,
+    totalNotes,
+
+    // Actions
     fetchNotes,
     createNote,
     updateNote,

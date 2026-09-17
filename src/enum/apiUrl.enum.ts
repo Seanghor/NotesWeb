@@ -4,8 +4,9 @@ export default class ApiURL {
   static REGISTER = '/auth/register'
 
   /* Notes Module */
-  static GET_ALL_NOTE = '/notes'
+  static GET_ALL_NOTE = '/notes/list'
+  static GET_ONE_NOTE = '/notes/getByID'
   static CREATE_NOTE = '/notes/create'
-  static UPDATE_NOTE = '/notes/update'
-  static DELETE_NOTE = '/notes/delete'
+  static UPDATE_NOTE = '/notes/updateByID'
+  static DELETE_NOTE = '/notes/deleteByID'
 }
